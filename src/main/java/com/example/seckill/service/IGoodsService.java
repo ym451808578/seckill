@@ -2,6 +2,7 @@ package com.example.seckill.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.seckill.entity.Goods;
+import com.example.seckill.entity.User;
 import com.example.seckill.vo.GoodsVo;
 
 import java.util.List;
@@ -30,4 +31,21 @@ public interface IGoodsService extends IService<Goods> {
      * @return
      */
     GoodsVo getGoodsVo(Long id);
+
+    /**
+     * 创建用户所属专用地址
+     *
+     * @param user
+     * @return
+     */
+    String createPath(User user);
+
+    /**
+     * 检查用户所属专用地址
+     *
+     * @param user
+     * @param path
+     * @return
+     */
+    boolean checkPath(User user,String path);
 }

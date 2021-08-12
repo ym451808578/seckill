@@ -1,23 +1,23 @@
 package com.example.seckill.controller;
 
 
+import cn.hutool.core.util.IdUtil;
+import com.example.seckill.config.AccessLimit;
 import com.example.seckill.entity.User;
 import com.example.seckill.service.IGoodsService;
 import com.example.seckill.vo.GoodsVo;
+import com.example.seckill.vo.RespBean;
+import com.wf.captcha.ArithmeticCaptcha;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -27,50 +27,52 @@ import java.util.List;
  * @author Castle
  * @since 2021-08-05
  */
-@Controller
+@RestController
 @RequestMapping("/goods")
 @Slf4j
 public class GoodsController {
 
     @Resource
     private IGoodsService goodsService;
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
-    @RequestMapping("toList")
-    public String list(Model model) {
-        log.info("goods/toList");
+    @RequestMapping(value = "toList")
+    public RespBean list() {
         List<GoodsVo> goodsList = goodsService.listGoodsVo();
-        log.info(goodsList.toString());
-        model.addAttribute("goodsList", goodsList);
-        return "goodsList";
+        return RespBean.success(goodsList);
     }
 
-    @GetMapping("goodsDetail/{id}")
-    public String goodsDetail(@PathVariable("id") Long id, Model model, HttpServletRequest request) {
-        Cookie cookie = Arrays.stream(request.getCookies()).filter(c -> c.getName().equals("sessionId")).findFirst().get();
-        String uuid = cookie.getValue();
-        HttpSession session = request.getSession(false);
-        User user = (User) session.getAttribute(uuid);
-        user.setPassword("");
+    @AccessLimit(second = 30, maxCount = 5, needLogin = true)
+    @GetMapping("details/{id}")
+    public RespBean goodsDetail(@PathVariable("id") Long id, User user) {
         GoodsVo goods = goodsService.getGoodsVo(id);
         int secKillStatus = 0;
-        int remainSeconds=0;
+        int remainSeconds = 0;
         Date nowDate = new Date();
         Date startDate = goods.getStartDate();
         Date endDate = goods.getEndDate();
-        if (nowDate.before(startDate)){
-            remainSeconds= (int) ((startDate.getTime()-nowDate.getTime())/1000);
+        if (nowDate.before(startDate)) {
+            remainSeconds = (int) ((startDate.getTime() - nowDate.getTime()) / 1000);
         }
         if (endDate.before(nowDate)) {
             secKillStatus = 2;
-            remainSeconds=-1;
+            remainSeconds = -1;
         } else if (startDate.before(nowDate)) {
             secKillStatus = 1;
         }
-        log.info("secKillStatus:{}", secKillStatus);
-        model.addAttribute("user", user);
-        model.addAttribute("goods", goods);
-        model.addAttribute("secKillStatus", secKillStatus);
-        model.addAttribute("remainSeconds",remainSeconds);
-        return "goodsDetail";
+
+        // 算术类型
+        ArithmeticCaptcha captcha = new ArithmeticCaptcha(130, 48);
+        String key = "captcha:" + IdUtil.simpleUUID();
+        redisTemplate.opsForValue().set(key, captcha.text(), 60, TimeUnit.SECONDS);
+        Map<String, Object> map = new HashMap<>();
+        map.put("user", user);
+        map.put("goods", goods);
+        map.put("secKillStatus", secKillStatus);
+        map.put("remainSeconds", remainSeconds);
+        map.put("key", key);
+        map.put("captcha", captcha.toBase64());
+        return RespBean.success(map);
     }
 }

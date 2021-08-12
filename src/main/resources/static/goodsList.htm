@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>商品列表</title>
+    <!-- jquery -->
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <!-- bootstrap -->
+    <link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.min.css"/>
+    <script type="text/javascript" src="bootstrap/js/bootstrap.min.js"></script>
+    <!-- layer -->
+    <script type="text/javascript" src="layer/layer.js"></script>
+    <!-- common.js -->
+    <script type="text/javascript" src="js/common.js"></script>
+</head>
+<body>
+<div class="panel panel-default">
+    <div class="panel-heading">秒杀商品列表</div>
+    <table class="table" id="goodsList">
+        <tr id="template">
+            <td id="goodsName">商品名称</td>
+            <td id="goodsImg">商品图片</td>
+            <td id="goodsPrice">商品原价</td>
+            <td id="seckillPrice">秒杀价</td>
+            <td id="stockCount">库存数量</td>
+            <td id="goodsDetail">详情</td>
+        </tr>
+    </table>
+</div>
+<script>
+    $.get("/goods/toList", function (result) {
+        if (result.code === 200) {
+            var goodsList = result.object
+            $.each(goodsList, function (i, goods) {
+                console.log(goods)
+                var row = $('#template').clone();
+                row.find('#goodsName').text(goods.goodsName)
+                row.find('#goodsImg').html('<img src="' + goods.goodsImg + '" width="100" height="100"/>')
+                row.find('#goodsPrice').text(goods.goodsPrice)
+                row.find('#seckillPrice').text(goods.seckillPrice)
+                row.find('#stockCount').text(goods.stockCount)
+                row.find('#goodsDetail').html('<a href="goodsDetail.htm?goodsId='+goods.id+'">详情</a>')
+                row.appendTo('#goodsList')
+            })
+
+        } else {
+            layer.alert("服务端错误")
+        }
+    })
+</script>
+</body>
+</html>

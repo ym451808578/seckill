@@ -5,6 +5,7 @@ import com.example.seckill.entity.Goods;
 import com.example.seckill.entity.Order;
 import com.example.seckill.entity.SeckillGoods;
 import com.example.seckill.entity.User;
+import com.example.seckill.vo.RespBean;
 
 /**
  * <p>
@@ -19,9 +20,9 @@ public interface ISeckillGoodsService extends IService<SeckillGoods> {
     /**
      * 秒杀
      *
-     * @param goodsId
+     * @param goods
      * @param user
      * @return order
      */
-    Order secKill(Goods goods, User user);
+    RespBean secKill(Goods goods, User user);
 }

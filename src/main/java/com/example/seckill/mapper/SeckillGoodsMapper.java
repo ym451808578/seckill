@@ -13,4 +13,5 @@ import com.example.seckill.entity.SeckillGoods;
  */
 public interface SeckillGoodsMapper extends BaseMapper<SeckillGoods> {
 
+    SeckillGoods selectForUpdate(Long id);
 }

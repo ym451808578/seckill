@@ -12,6 +12,7 @@ import com.example.seckill.vo.LoginParam;
 import com.example.seckill.vo.RespBean;
 import com.example.seckill.vo.RespBeanEnum;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -34,6 +35,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Resource
     private UserMapper userMapper;
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public RespBean doLogin(LoginParam loginParam, HttpSession session, HttpServletRequest request, HttpServletResponse response) {
@@ -43,13 +46,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (!user.getPassword().equals(DigestUtil.md5Hex(loginParam.getPassword() + user.getSalt()))) {
             throw new GlobalException(RespBeanEnum.LOGIN_ERROR);
         }
+        user.setPassword(null);
         String uuid = IdUtil.simpleUUID();
-        log.info("uuid:{}", uuid);
-        session.setAttribute(uuid, user);
-        session.setAttribute("sessionId",uuid);
+        session.setAttribute("user", user);
+        //使用cookie登录，便于jmeter压力测试
+        redisTemplate.opsForValue().set("sessionId:" + uuid, user);
         Cookie cookie = new Cookie("sessionId", uuid);
-        cookie.setMaxAge(-1);
-        cookie.setDomain("localhost");
         cookie.setPath("/");
         response.addCookie(cookie);
         return RespBean.success(user);
